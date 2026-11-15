@@ -1,0 +1,6 @@
+event_id,params_json,transaction_id_do_map,value_do_map
+ba059819-8b6f-4882-b0b1-e080846b4396,"{""transaction_id"":""T-73C83A15"",""value"":297.0,""tax"":14.85,""shipping"":0.0,""currency"":""BRL"",""payment_type"":""cartao_avista"",""coupon"":null,""element_id"":""btn-comprar""}",T-73C83A15,297.0
+aa2f0d8c-0bb9-4c1e-85c2-75ef6c0672d9,"{""transaction_id"":""T-06AB805F"",""value"":744.0,""tax"":37.2,""shipping"":0.0,""currency"":""BRL"",""payment_type"":""cartao_avista"",""coupon"":null,""element_id"":""btn-comprar""}",T-06AB805F,744.0
+f8aa5d96-aa39-4c48-ba72-75a2a0b86c8d,"{""transaction_id"":""T-5D71AAD5"",""value"":947.15,""tax"":47.36,""shipping"":24.9,""currency"":""BRL"",""payment_type"":""pix"",""coupon"":""PIX5"",""element_id"":""btn-comprar""}",T-5D71AAD5,947.15
+e2a41ce3-a8ec-427e-9717-4b0ea35e0093,"{""transaction_id"":null,""value"":282.15,""tax"":14.11,""shipping"":0.0,""currency"":""BRL"",""payment_type"":""pix"",""coupon"":""PIX5"",""element_id"":""btn-comprar""}",,282.15
+18388440-078e-403d-aa65-55a2714ad78f,"{""transaction_id"":""T-D08A3B98"",""value"":297.0,""tax"":14.85,""shipping"":0.0,""currency"":""BRL"",""payment_type"":""cartao_parcelado"",""coupon"":null,""element_id"":""btn-comprar""}",T-D08A3B98,297.0

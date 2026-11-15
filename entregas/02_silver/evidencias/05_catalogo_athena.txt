@@ -1,0 +1,57 @@
+Evidência: Data Catalog e Athena validados pela VIA REAL do explorador.
+Capturado em 2026-10-27. Usa s3.listar() + particoes.datasets() (Data Catalog) e
+consultas.conectar() + criar_views() + executar() (Athena/DuckDB sobre o floci) —
+o mesmo código das telas Glue · Data Catalog e Athena · Editor. Não é uma consulta
+DuckDB avulsa.
+
+=== DATA CATALOG: bancos e tabelas descobertos ===
+  bronze: eventos
+  landing: eventos
+  silver: eventos, eventos_rejeitados, itens
+
+As três tabelas da Silver aparecem no banco `silver`:
+  silver.eventos             (prefixo silver, parquet, particionado event_name/year/month/day)
+  silver.eventos_rejeitados  (prefixo silver/eventos_rejeitados, parquet, sem partição)
+  silver.itens               (prefixo silver/itens, parquet, particionado year/month/day)
+
+=== DESCRIBE silver.eventos (esquema apresentado pelo Athena) ===
+Colunas e tipos (resumo): event_id/event_ts/user_pseudo_id/user_id/session_hint
+VARCHAR; page/traffic/device STRUCT; params_json VARCHAR; items STRUCT[]; params
+MAP(VARCHAR,VARCHAR); _arquivo_origem VARCHAR; _ingerido_em TIMESTAMP;
+event_ts_ts TIMESTAMP; percent_scrolled/search_results/video_percent INTEGER;
+outbound/tem_value/tem_percent_scrolled/tem_video_percent BOOLEAN;
+value/shipping/tax/video_duration/video_current_time DOUBLE; element_id VARCHAR;
+pagina VARCHAR; ordinal BIGINT; session_id VARCHAR; user_id_resolvido VARCHAR;
+chaves de partição event_name/year/month/day VARCHAR.
+
+=== DESCRIBE silver.eventos_rejeitados ===
+event_id VARCHAR; event_name VARCHAR; motivo_rejeicao VARCHAR;
+_arquivo_origem VARCHAR; _ingerido_em TIMESTAMP; event_ts VARCHAR;
+event_ts_ts TIMESTAMP; user_pseudo_id VARCHAR; params_json VARCHAR.
+
+=== DESCRIBE silver.itens ===
+item_id/item_name/item_category VARCHAR; price DOUBLE; quantity BIGINT;
+index BIGINT; item_list_id/item_list_name VARCHAR; event_id/event_name VARCHAR;
+event_ts_ts TIMESTAMP; user_pseudo_id/user_id_resolvido/session_id VARCHAR;
+_arquivo_origem VARCHAR; _ingerido_em TIMESTAMP; day/month/year VARCHAR (partição).
+
+=== ATHENA: execução dos .sql de entregas/02_silver/consultas/ ===
+As quatro consultas foram executadas pelo motor da tela Athena (DuckDB sobre o
+floci, via consultas.executar()) e exportadas como CSVs reais em ../resultados/:
+
+  validos_resumo.sql        -> validos_resumo.csv        (22 linhas: por event_name)
+  rejeitados_por_motivo.sql -> rejeitados_por_motivo.csv (6 linhas: 6 motivos R7)
+  sessoes_por_usuario.sql   -> sessoes_por_usuario.csv   (5 linhas: 1..5 sessões)
+  itens_por_produto.sql     -> itens_por_produto.csv     (4 linhas: catálogo)
+
+Conferência cruzada com a reconciliação do job (01_execucao_silver.txt):
+  Σ validos por event_name          = 61813  (== Válidos do job)
+  Σ linhas rejeitados por motivo     = 1903   (== Rejeitados distintos do job)
+  Σ usuarios por nº de sessões       = 5994   (== user_pseudo_id distintos)
+  Σ sessoes (1*3966+2*1443+3*401+4*182+5*2) = 8793  (== sessões distintas)
+  Σ linhas_item por produto          = 24427  (== Itens do job)
+
+Conclusão: o Data Catalog descobre silver.eventos, silver.eventos_rejeitados e
+silver.itens com o esquema do Parquet final, e o Athena executa as quatro
+consultas registradas sobre esse esquema, com números reais que fecham com a
+reconciliação do job.

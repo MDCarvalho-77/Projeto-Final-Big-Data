@@ -1,0 +1,28 @@
+Evidência: testes automatizados no ambiente oficial (contêiner app).
+Capturado em 2026-10-25.
+
+--- Testes do pipeline (inclui os da Bronze, com params_json) ---
+Comando:
+  docker compose run --rm app python -m pytest tests/pipeline -v
+
+Resultado:
+  tests/pipeline/test_bronze.py ..............   (14 testes)
+  tests/pipeline/test_comum.py  .......          (7 testes, inalterados)
+  ================= 21 passed in 13.76s =================
+
+Testes novos de params (além dos já existentes):
+  - test_params_json_cru_e_map_derivado: params_json preserva tipos (número,
+    booleano, nulo); params (map) torna as chaves consultáveis.
+  - test_params_json_preserva_aninhado_inesperado: objeto/array inesperado dentro
+    de params não é descartado.
+  - test_params_ausente_vira_nulo_sem_quebrar: evento sem params não quebra.
+
+--- Suíte completa (gerador, site, explorador e pipeline) ---
+Comando:
+  docker compose run --rm app python -m pytest
+
+Resultado:
+  294 passed in 47.29s
+
+Nenhum teste preexistente foi alterado para passar; nenhuma regressão.
+(A suíte era 291 antes; +3 testes novos de params = 294.)

@@ -1,0 +1,23 @@
+Evidência: resultado real do pytest no contêiner `app`. Capturado em 2026-10-27.
+O "N passed" é a fonte de verdade (sem filtros de pipe que alterem o exit code).
+
+=== 1) Testes do job Silver ===
+Comando:
+    docker compose run --rm app python -m pytest tests/pipeline/test_silver.py
+Resultado:
+    53 passed in 88.94s (0:01:28)
+
+=== 2) Todos os testes do pipeline ===
+Comando:
+    docker compose run --rm app python -m pytest tests/pipeline
+Resultado:
+    74 passed in 98.19s (0:01:38)
+  (14 Bronze + 7 comum + 53 Silver = 74; os 53 novos são do test_silver.py)
+
+=== 3) Suíte completa (sem regressão) ===
+Comando:
+    docker compose run --rm app python -m pytest
+Resultado:
+    347 passed in 134.51s (0:02:14)
+  (294 antes da Silver + 53 novos = 347; nenhuma regressão nos testes do
+   gerador, do site e do explorador.)

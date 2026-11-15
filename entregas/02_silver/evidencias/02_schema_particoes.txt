@@ -1,0 +1,139 @@
+Evidência: schema, tipos, partições e integridade referencial dos conjuntos Silver
+gravados, lidos de volta do floci pelo Spark (s3a). Capturado em 2026-10-27, lendo
+os dados que o job pipeline/silver.py acabou de gravar.
+
+=== BRONZE (preservação R4: Bronze é append-only; a Silver não a altera) ===
+BRONZE_COUNT = 64372   (idêntico à contagem ANTES de rodar a Silver — Bronze intacta)
+
+=== SILVER VÁLIDOS (silver/event_name=.../year=.../month=.../day=...) ===
+VALIDOS_COUNT = 61813
+
+schema (relido do Parquet gravado):
+root
+ |-- user_pseudo_id: string
+ |-- event_id: string
+ |-- event_ts: string                 (texto cru preservado para rastreabilidade)
+ |-- user_id: string                  (user_id ORIGINAL do evento, preservado)
+ |-- session_hint: string             (presente mas NÃO usado na sessionização — R8)
+ |-- page: struct(location, referrer)
+ |-- traffic: struct(source, medium, campaign)
+ |-- device: struct(category, os, browser)
+ |-- params_json: string              (JSON cru preservado — fonte da tipagem R6)
+ |-- items: array<struct<item_id, item_name, item_category, price:double,
+ |                       quantity:long, index:long, item_list_id, item_list_name>>
+ |-- _arquivo_origem: string          (proveniência R4 preservada)
+ |-- _ingerido_em: timestamp          (proveniência R4 preservada)
+ |-- params: map<string,string>
+ |-- event_ts_ts: timestamp           (R6: event_ts tipado via try_to_timestamp)
+ |-- page_title: string               (R6 — colunas tipadas de params a partir daqui)
+ |-- percent_scrolled: integer
+ |-- link_url, link_domain, link_text, link_id: string
+ |-- outbound: boolean
+ |-- search_term: string
+ |-- search_results: integer
+ |-- search_area: string
+ |-- video_title, video_provider: string
+ |-- video_duration: double
+ |-- video_current_time: double
+ |-- video_percent: integer
+ |-- file_name, file_extension: string
+ |-- item_list_id, item_list_name: string
+ |-- currency: string
+ |-- value: double
+ |-- shipping_tier: string
+ |-- shipping: double
+ |-- payment_type: string
+ |-- transaction_id: string
+ |-- tax: double
+ |-- coupon, reason, lead_source, method: string
+ |-- element_id: string               (R6: data-heat; opcional, nunca rejeita)
+ |-- tem_value, tem_percent_scrolled, tem_video_percent: boolean (flags de presença)
+ |-- pagina: string                   (5.4 item 12: page.location sem domínio/#/?; raiz = /)
+ |-- ordinal: long                    (nº da sessão do navegador — útil à Gold)
+ |-- session_id: string               (R8: user_pseudo_id#ordinal)
+ |-- user_id_resolvido: string        (R9: user_id costurado por user_pseudo_id)
+ |-- event_name: string               (partição)
+ |-- year: string                     (partição)
+ |-- month: string                    (partição — "09", dois dígitos, texto)
+ |-- day: string                      (partição — dois dígitos, texto)
+
+partições (event_name/year/month/day), amostra (month=09 e day com dois dígitos):
+  add_payment_info | 2026 | 09 | 01
+  add_payment_info | 2026 | 09 | 02
+  ... (uma partição por event_name × dia de evento UTC)
+
+amostra de tipos-chave (event_ts_ts timestamp, percent_scrolled int, session_id,
+ordinal, pagina normalizada):
+  scroll  2026-09-01 16:23:10.747  percent_scrolled=25  session_id=anon-0061a789#1  ordinal=1  pagina=/
+  scroll  2026-09-01 16:23:22.328  percent_scrolled=50  session_id=anon-0061a789#1  ordinal=1  pagina=/
+  scroll  2026-09-01 11:08:36.054  percent_scrolled=25  session_id=anon-04067fdb#1  ordinal=1  pagina=/
+
+R5 nos válidos: linhas=61813  distinct event_id=61813  duplicatas=0
+  (cada event_id aparece uma vez só — dedup confirmada)
+
+=== SILVER ITENS (silver/itens/year=.../month=.../day=...) — R10 ===
+ITENS_COUNT = 24427
+
+schema (relido do Parquet gravado):
+root
+ |-- item_id, item_name, item_category: string
+ |-- price: double
+ |-- quantity: long
+ |-- index: long
+ |-- item_list_id, item_list_name: string
+ |-- event_id, event_name: string        (vínculo com o evento de origem)
+ |-- event_ts_ts: timestamp
+ |-- user_pseudo_id, user_id_resolvido, session_id: string
+ |-- _arquivo_origem: string, _ingerido_em: timestamp  (proveniência preservada)
+ |-- year, month, day: string            (partição derivada de event_ts_ts UTC)
+
+amostra (um purchase/view_item_list vira uma linha por item):
+  PLANO-BASICO  Plano Básico  plano  297.0  qty=1  event=view_item_list ...
+  PLANO-PRO     Plano Pro     plano  597.0  qty=1  event=view_item_list ...
+  PLANO-PREMIUM Plano Premium plano  997.0  qty=1  event=view_item_list ...
+
+event_name presentes em itens (só eventos de e-commerce têm items[]):
+  add_payment_info, add_shipping_info, add_to_cart, begin_checkout, purchase,
+  refund, remove_from_cart, select_item, view_cart, view_item, view_item_list
+
+=== SILVER REJEITADOS (silver/eventos_rejeitados/) — R7 ===
+REJEITADOS_LINHAS = 1903
+
+schema (relido do Parquet gravado):
+root
+ |-- event_id: string
+ |-- event_name: string
+ |-- motivo_rejeicao: string            (rótulo constante, um motivo por linha)
+ |-- _arquivo_origem: string            (proveniência preservada — rastreabilidade)
+ |-- _ingerido_em: timestamp
+ |-- event_ts: string                   (ts cru — distingue ausente de futuro)
+ |-- event_ts_ts: timestamp             (ts tipado — nulo = ausente/mal-formado)
+ |-- user_pseudo_id: string
+ |-- params_json: string                (dados originais p/ corrigir a origem)
+
+rejeitados por motivo (um motivo por linha):
+  timestamp_ausente_ou_futuro  948
+  valor_monetario_invalido     349
+  marco_fora_do_padrao         272
+  evento_fora_catalogo         271
+  reembolso_sem_compra          32
+  transacao_sem_id              31
+REJEITADOS_DISTINTOS = 1903 (com event_id = 1903, sem event_id = 0)
+eventos rejeitados com múltiplos motivos = 0  (logo linhas == eventos distintos)
+
+=== INTEGRIDADE REFERENCIAL E RECONCILIAÇÃO ===
+itens órfãos (event_id de itens sem evento válido)         = 0
+Σ size(items) sobre válidos = 24427  ==  ITENS_COUNT = 24427  (igual)
+processados(64372) == válidos(61813) + duplicatas(656) + rejeitados_distintos(1903) = TRUE
+interseção válidos ∩ rejeitados (event_id)                 = 0
+
+=== R8 sessões (corte de 30 min por user_pseudo_id, sem session_hint) ===
+sessões distintas     = 8793
+user_pseudo_id distintos = 5994
+usuários com mais de uma sessão existem (até 5 sessões), prova dos cortes de
+inatividade > 30 min — a sessão é calculada, não copiada de session_hint.
+
+=== R9 identity stitching ===
+eventos com user_id ORIGINAL nulo mas user_id_resolvido PREENCHIDO = 8736
+  (o user_id do login/sign_up foi aplicado a eventos anteriores ao login do mesmo
+   user_pseudo_id — inclusive os anteriores à autenticação).

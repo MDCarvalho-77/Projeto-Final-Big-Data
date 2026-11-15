@@ -1,0 +1,5 @@
+metrica,valor,features
+auc,0.9227452275044025,"scroll_max, video_percent_max, n_eventos_pre, n_view_item_list, n_select_item, n_view_item, n_site_search, n_file_download, n_click, fez_lead_pre, tem_select_item, canal, dispositivo"
+f1,0.47727272727272735,"scroll_max, video_percent_max, n_eventos_pre, n_view_item_list, n_select_item, n_view_item, n_site_search, n_file_download, n_click, fez_lead_pre, tem_select_item, canal, dispositivo"
+precisao,0.31722054380664655,"scroll_max, video_percent_max, n_eventos_pre, n_view_item_list, n_select_item, n_view_item, n_site_search, n_file_download, n_click, fez_lead_pre, tem_select_item, canal, dispositivo"
+recall,0.963302752293578,"scroll_max, video_percent_max, n_eventos_pre, n_view_item_list, n_select_item, n_view_item, n_site_search, n_file_download, n_click, fez_lead_pre, tem_select_item, canal, dispositivo"

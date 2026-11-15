@@ -1,0 +1,7 @@
+motivo_rejeicao,linhas,eventos_distintos
+timestamp_ausente_ou_futuro,948,948
+valor_monetario_invalido,349,349
+marco_fora_do_padrao,272,272
+evento_fora_catalogo,271,271
+reembolso_sem_compra,32,32
+transacao_sem_id,31,31

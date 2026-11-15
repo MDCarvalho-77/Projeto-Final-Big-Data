@@ -1,0 +1,55 @@
+Evidência: execução real do job Silver no contêiner `app` sobre a Bronze real do floci.
+Capturado em 2026-10-27. Comando:
+
+    docker compose run --rm app python pipeline/silver.py
+
+Saída real do job (linhas de progresso [Stage ...] e WARN de log do Spark omitidas):
+
+======================================================================
+Silver
+======================================================================
+[ok] Processados (Bronze): 64372
+[ok] Duplicatas removidas (R5): 656
+[ok] Eventos únicos (pós-dedup): 63716
+[ok] Válidos: 61813
+[ok] Rejeitados (eventos distintos): 1903
+[ok] Itens explodidos (R10): 24427
+
+Rejeitados por motivo (linhas; um motivo por linha):
++---------------------------+-----+
+|motivo_rejeicao            |count|
++---------------------------+-----+
+|timestamp_ausente_ou_futuro|948  |
+|valor_monetario_invalido   |349  |
+|marco_fora_do_padrao       |272  |
+|evento_fora_catalogo       |271  |
+|reembolso_sem_compra       |32   |
+|transacao_sem_id           |31   |
++---------------------------+-----+
+
+Reconciliação:
+[ok] processados == válidos + duplicatas + rejeitados_distintos
+[ok] disjunção válidos ∩ rejeitados (event_id) == 0
+[ok] cobertura válidos + rejeitados_distintos == eventos_únicos
+[ok] itens == Σ size(items) sobre válidos
+[ok] todo event_id de itens existe nos válidos
+
+[ok] Gravados: silver/eventos_rejeitados, silver/itens, silver/event_name=...
+
+----------------------------------------------------------------------
+Reconciliação conferida (R5/R7):
+  processados (Bronze)     = 64372
+  duplicatas removidas (R5)= 656   -> pós-dedup = 63716
+  válidos                  = 61813
+  rejeitados (distintos)   = 1903
+  61813 + 656 + 1903       = 64372  (identidade fecha)
+
+As 6 regras mínimas do R7 estão todas cobertas (6 motivos acima). Nenhum evento
+rejeitado teve mais de um motivo nesta execução (ver 02_schema_particoes.txt),
+logo linhas de rejeitados == eventos rejeitados distintos == 1903.
+
+Observação sobre o código de saída do processo: ao rodar via PowerShell, o
+`docker compose` imprime a linha de status do contêiner no stderr, o que faz o
+PowerShell reportar exit code 1 mesmo com o job concluído com sucesso (a última
+linha do job é `[ok] Gravados: ...`). O job Python terminou com `main()`
+retornando 0 e todas as identidades de reconciliação [ok].

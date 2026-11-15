@@ -1,0 +1,53 @@
+Evidência: Data Catalog e Athena validados pela VIA REAL do explorador.
+Capturado em 2026-10-25. Usa s3.listar() + particoes.datasets() (Data Catalog) e
+consultas.criar_views() + consultas.executar() (Athena), o mesmo código das telas
+Glue · Data Catalog e Athena · Editor. Não é uma consulta DuckDB avulsa.
+
+=== DATA CATALOG: bancos e tabelas descobertos ===
+  landing: eventos
+  bronze: eventos
+
+=== bronze.eventos ===
+  prefixo: bronze | formato: parquet | particionado: True
+  chaves de partição: ['event_name', 'year', 'month', 'day']
+
+=== DESCRIBE bronze.eventos (esquema apresentado pelo Athena) ===
+column_name       column_type
+event_id          VARCHAR
+event_ts          VARCHAR
+user_pseudo_id    VARCHAR
+user_id           VARCHAR
+session_hint      VARCHAR
+page              STRUCT("location" VARCHAR, referrer VARCHAR)
+traffic           STRUCT("source" VARCHAR, medium VARCHAR, campaign VARCHAR)
+device            STRUCT(category VARCHAR, os VARCHAR, browser VARCHAR)
+params_json       VARCHAR
+items             STRUCT(item_id VARCHAR, item_name VARCHAR, item_category VARCHAR,
+                         price DOUBLE, quantity BIGINT, "index" BIGINT,
+                         item_list_id VARCHAR, item_list_name VARCHAR)[]
+_arquivo_origem   VARCHAR
+_ingerido_em      TIMESTAMP
+params            MAP(VARCHAR, VARCHAR)
+day               VARCHAR
+event_name        VARCHAR
+month             VARCHAR
+year              VARCHAR
+
+=== ATHENA: execução dos .sql de entregas/01_bronze/consultas/ ===
+
+contagem_por_evento.sql (1 consulta): 23 linhas [event_name, linhas]
+  scroll 20259 | page_view 13367 | video_progress 7576 | view_item_list 5381 | click 2981 ...
+
+proveniencia_e_particoes.sql (2 consultas):
+  consulta 1 [total, com_arquivo_origem, com_ingerido_em, arquivos_distintos]:
+    64372 | 64372 | 64372 | 1381
+  consulta 2 [event_name, year, month, day, linhas]: 20 linhas (amostra das partições)
+
+params_fidelidade.sql (1 consulta): 5 linhas
+  [event_id, params_json, transaction_id_do_map, value_do_map]
+  inclui uma compra com "transaction_id":null (defeito) preservado fielmente em
+  params_json, e outra com "coupon":"PIX5" — provando a fidelidade dos tipos.
+
+Conclusão: o Data Catalog descobre bronze.eventos com o esquema do Parquet final
+(incluindo params_json VARCHAR e params MAP) e o Athena executa as três consultas
+registradas sobre esse esquema, com os números reais.

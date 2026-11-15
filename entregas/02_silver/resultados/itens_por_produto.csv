@@ -1,0 +1,5 @@
+item_id,item_name,item_category,price,linhas_item,soma_quantidade
+PLANO-PRO,Plano Pro,plano,597.0,8756,8756.0
+PLANO-BASICO,Plano Básico,plano,297.0,7895,7895.0
+PLANO-PREMIUM,Plano Premium,plano,997.0,7002,7002.0
+BUMP-MENTORIA,Mentoria em grupo,order_bump,147.0,774,774.0

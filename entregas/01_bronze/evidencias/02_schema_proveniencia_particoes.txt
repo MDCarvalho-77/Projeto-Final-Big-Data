@@ -1,0 +1,86 @@
+Evidência: schema, proveniência e partições da Bronze gravada.
+Capturado em 2026-10-25 lendo s3a://datalake-tracking/bronze/ com o Spark
+(comum.ler_eventos). Linhas de progresso "[Stage ...]" omitidas.
+
+=== SCHEMA DA BRONZE (explícito, R4) ===
+root
+ |-- event_id: string (nullable = true)
+ |-- event_ts: string (nullable = true)
+ |-- user_pseudo_id: string (nullable = true)
+ |-- user_id: string (nullable = true)
+ |-- session_hint: string (nullable = true)
+ |-- page: struct (nullable = true)
+ |    |-- location: string (nullable = true)
+ |    |-- referrer: string (nullable = true)
+ |-- traffic: struct (nullable = true)
+ |    |-- source: string (nullable = true)
+ |    |-- medium: string (nullable = true)
+ |    |-- campaign: string (nullable = true)
+ |-- device: struct (nullable = true)
+ |    |-- category: string (nullable = true)
+ |    |-- os: string (nullable = true)
+ |    |-- browser: string (nullable = true)
+ |-- params_json: string (nullable = true)     <- objeto JSON cru de params (fiel, R4)
+ |-- items: array (nullable = true)
+ |    |-- element: struct (containsNull = true)
+ |    |    |-- item_id: string
+ |    |    |-- item_name: string
+ |    |    |-- item_category: string
+ |    |    |-- price: double
+ |    |    |-- quantity: long
+ |    |    |-- index: long
+ |    |    |-- item_list_id: string
+ |    |    |-- item_list_name: string
+ |-- _arquivo_origem: string (nullable = true)  <- proveniência (R4)
+ |-- _ingerido_em: timestamp (nullable = true)  <- proveniência (R4)
+ |-- params: map (nullable = true)              <- mapa derivado de params_json (consultável)
+ |    |-- key: string
+ |    |-- value: string (valueContainsNull = true)
+ |-- event_name: string (nullable = true)       <- partição (do caminho)
+ |-- year: string (nullable = true)             <- partição
+ |-- month: string (nullable = true)            <- partição
+ |-- day: string (nullable = true)              <- partição
+
+=== PROVENIÊNCIA (R4): toda linha tem _arquivo_origem e _ingerido_em ===
++-----+------------------+---------------+------------------+
+|total|com_arquivo_origem|com_ingerido_em|arquivos_distintos|
++-----+------------------+---------------+------------------+
+|64372|64372             |64372          |1381              |
++-----+------------------+---------------+------------------+
+(1381 arquivos de origem distintos = os 1381 arquivos da landing.)
+
+=== PARAMS: duas colunas numa compra (params_json cru + params map) ===
+event_id   : 3c0d409f-21a3-4034-89ad-6f07c5bdb176
+params_json: {"transaction_id":"T-52C70006","value":297.0,"tax":14.85,"shipping":0.0,
+              "currency":"BRL","payment_type":"cartao_parcelado","coupon":null,
+              "element_id":"btn-comprar"}
+params     : {transaction_id -> T-52C70006, value -> 297.0, tax -> 14.85,
+              shipping -> 0.0, currency -> BRL, payment_type -> cartao_parcelado,
+              coupon -> NULL, element_id -> btn-comprar}
+(params_json preserva os tipos JSON: value é número, coupon é null; o map torna
+ as chaves consultáveis como texto.)
+
+=== PARAMS: cobertura (nenhuma linha sem representação) ===
++-----+---------------+--------------+
+|total|com_params_json|com_params_map|
++-----+---------------+--------------+
+|64372|64372          |64372         |
++-----+---------------+--------------+
+
+=== PARTIÇÕES (R4): primeiras 12 por event_name/year/month/day ===
+event_name         year  month  day  count
+add_payment_info   2026  09     01   56
+add_shipping_info  2026  09     01   17
+add_to_cart        2026  09     01   153
+add_to_wishlist    2026  09     01   20
+begin_checkout     2026  09     01   73
+click              2026  09     01   221
+file_download      2026  09     01   24
+generate_lead      2026  09     01   41
+page_view          2026  09     01   1005
+purchase           2026  09     01   47
+refund             2026  09     01   1
+remove_from_cart   2026  09     01   22
+
+=== month distinto (texto de 2 dígitos) ===
+month = 09   (texto, não 9 — inferência de partição desligada)

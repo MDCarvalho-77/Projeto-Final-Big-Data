@@ -1,0 +1,41 @@
+Evidência: idempotência do job Silver e preservação da Bronze. Capturado em
+2026-10-27. O job foi executado TRÊS vezes sobre a MESMA Bronze real (as duas
+execuções abaixo mais a captura de 01_execucao_silver.txt); todas produziram
+exatamente os mesmos números.
+
+Comando repetido:
+    docker compose run --rm app python pipeline/silver.py
+
+=== Contagens estáveis entre execuções (idempotência) ===
+                                  1ª exec   2ª exec   3ª exec
+Processados (Bronze)              64372     64372     64372
+Duplicatas removidas (R5)         656       656       656
+Eventos únicos (pós-dedup)        63716     63716     63716
+Válidos                           61813     61813     61813
+Rejeitados (eventos distintos)    1903      1903      1903
+Itens explodidos (R10)            24427     24427     24427
+
+Rejeitados por motivo (idêntico nas três):
+  timestamp_ausente_ou_futuro     948
+  valor_monetario_invalido        349
+  marco_fora_do_padrao            272
+  evento_fora_catalogo            271
+  reembolso_sem_compra            32
+  transacao_sem_id                31
+
+Reconciliação [ok] nas três execuções (todas as 5 identidades).
+
+Por que é idempotente: cada um dos três conjuntos é gravado com overwrite —
+dinâmico para os particionados (silver/event_name=... e silver/itens/) e total
+para silver/eventos_rejeitados/. Reprocessar a mesma Bronze reescreve as mesmas
+partições com os mesmos dados; não há append, logo não há acúmulo de duplicatas
+nas saídas tratadas.
+
+=== Bronze preservada (append-only, R4) ===
+BRONZE_COUNT antes de rodar a Silver  = 64372
+BRONZE_COUNT depois das execuções     = 64372   (inalterada)
+
+A Silver nunca grava na raiz silver/ direta nem toca na camada bronze/; grava os
+três conjuntos em prefixos disjuntos (eventos_rejeitados/, itens/, event_name=...),
+com overwrite dinâmico que troca só as partições presentes no DataFrame e preserva
+as pastas vizinhas (silver/itens/ e silver/eventos_rejeitados/).

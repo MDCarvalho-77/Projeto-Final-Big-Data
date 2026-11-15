@@ -1,0 +1,16 @@
+event_name,year,month,day,linhas
+add_payment_info,2026,09,01,56
+add_shipping_info,2026,09,01,17
+add_to_cart,2026,09,01,153
+add_to_wishlist,2026,09,01,20
+begin_checkout,2026,09,01,73
+click,2026,09,01,221
+file_download,2026,09,01,24
+generate_lead,2026,09,01,41
+page_view,2026,09,01,1005
+purchase,2026,09,01,47
+refund,2026,09,01,1
+remove_from_cart,2026,09,01,22
+scroll,2026,09,01,1548
+select_item,2026,09,01,136
+sign_up,2026,09,01,30

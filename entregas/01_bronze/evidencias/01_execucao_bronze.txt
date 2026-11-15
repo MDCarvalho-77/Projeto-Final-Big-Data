@@ -1,0 +1,50 @@
+Evidência: execução real do job Bronze no ambiente oficial (contêiner app).
+Capturado em 2026-10-25.
+
+Comando:
+  docker compose run --rm app python pipeline/bronze.py
+
+Saída (linhas de progresso do Spark "[Stage ...]" omitidas):
+
+======================================================================
+Bronze
+======================================================================
+[ok] Landing lida e gravada na Bronze (append) por s3a: 64372 linhas nesta execução.
+[ok] Total acumulado na Bronze (todas as execuções): 64372 linhas.
+Linhas por event_name na Bronze:
++-----------------+-----+
+|event_name       |count|
++-----------------+-----+
+|scroll           |20259|
+|page_view        |13367|
+|video_progress   |7576 |
+|view_item_list   |5381 |
+|click            |2981 |
+|video_start      |2965 |
+|add_to_cart      |1807 |
+|select_item      |1772 |
+|view_cart        |1336 |
+|view_item        |1050 |
+|begin_checkout   |968  |
+|video_complete   |914  |
+|add_payment_info |730  |
+|purchase         |609  |
+|generate_lead    |558  |
+|sign_up          |458  |
+|file_download    |344  |
+|site_search      |308  |
+|add_to_wishlist  |274  |
+|remove_from_cart |253  |
+|add_shipping_info|192  |
+|login            |186  |
+|refund           |84   |
++-----------------+-----+
+
+Observações:
+- 64372 linhas lidas e gravadas, igual ao total da landing: a Bronze é cópia
+  fiel (sem limpeza/dedup; isso é da Silver).
+- Total acumulado = 64372 nesta sessão: a floci começou vazia (dados em memória),
+  e a Bronze foi gravada uma vez só. Não houve duplicação pelo procedimento de
+  validação.
+- add_to_wishlist (274) aparece: é o evento fora do catálogo injetado pelo
+  gerador, preservado na Bronze (a rejeição é da Silver, R7).

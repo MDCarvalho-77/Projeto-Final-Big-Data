@@ -1,0 +1,30 @@
+Evidência: validação do ambiente e geração da landing (contêiner app + floci).
+Capturado em 2026-10-25.
+
+Contexto: na retomada, o Docker Desktop estava parado e a floci (dados em memória)
+estava vazia. Procedimento oficial do SETUP.md seguido: subir floci, gerar a
+landing, verificar o ambiente.
+
+--- floci saudável ---
+Comando: docker compose up -d floci ; docker compose ps
+  floci-datalake-tracking  Up (healthy)  0.0.0.0:4566->4566/tcp
+
+--- Geração da landing (seed 42, 14 dias, 6000 visitantes) ---
+Comando: docker compose run --rm app python gerador/gerar_eventos.py
+Resumo (igual à referência do gerador/README.md):
+  Período:            2026-09-01 a 2026-09-14   seed: 42
+  linhas gravadas        64372   em 1381 arquivos
+  Defeitos injetados: purchase_sem_id 31, valor_negativo 272, moeda_usd 77,
+  scroll_33 272, ts_nulo 272, ts_futuro 676, refund_orfao 31,
+  evento_fora_catalogo 271
+
+Observação: a geração foi necessária porque a floci reiniciou desde a sessão
+anterior (armazenamento volátil). A seed 42 reproduz exatamente os mesmos dados,
+então as contagens batem com a entrega anterior.
+
+--- Verificação do ambiente (Spark <-> floci por s3a) ---
+Comando: docker compose run --rm app python infra/verificar_ambiente.py
+Saída (3 linhas [ok], executado nesta sessão em 2026-10-25):
+  [ok] landing lida por s3a: 64372 linhas em s3a://datalake-tracking/landing/
+  [ok] escrita e leitura de Parquet por s3a: 5 linhas em s3a://datalake-tracking/_verificacao/
+  [ok] pasta de verificação removida
